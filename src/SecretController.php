@@ -17,7 +17,8 @@ class SecretController {
         $secret = $this->secretService->createSecret($data);
 
         $_SESSION['hash'] = $secret['hash'];
-        //session_write_close();
+        $_SESSION['remainingViews'] = $secret['remainingViews'];
+        session_write_close();
 
         $response->getBody()->write(json_encode($secret));
         return $response->withHeader('Content-Type', 'application/json');
@@ -25,14 +26,14 @@ class SecretController {
 
     public function getSecret(Request $request, Response $response, $args)
     {
-        $hash = $args['hash'];
-        $secret = $this->secretService->getSecret($hash);
+        $secret = $this->secretService->getSecret($args['hash'], $args['remainingViews']);
 
         if ($secret) {
             $response->getBody()->write(json_encode($secret));
             return $response->withHeader('Content-Type', 'application/json');
         } else {
-            return $response->withStatus(404);
+            $response->getBody()->write('Your expiry date has gone!');
+            return $response;
         }
     }
 }

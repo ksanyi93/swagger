@@ -13,25 +13,35 @@ $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 
 $secretController = new SecretController();
 
-$app->post('/secret', [$secretController, 'createSecret']);
+$app->get('/', function (Request $request, Response $response, array $args) {
+    $response->getBody()->write("Welcome to my secret project!");
+    return $response;
+});
 
-//$app->get('/secret/{hash}', [$secretController, 'getSecret']);
+$app->get('/secret/form', function (Request $request, Response $response, array $args) {
+    $html = file_get_contents(__DIR__ . '/form.html');
+    $response->getBody()->write($html);
+    return $response;
+});
+
+$app->post('/secret', [$secretController, 'createSecret']);
 
 session_start();
 
 $app->get('/secret/{hash}', function (Request $request, Response $response, $args) use ($secretController) {
-    $hash = $_SESSION['hash'];
+    
+    $hash = $_SESSION['hash'] ?? '';
+    $remainingViews = $_SESSION['remainingViews'] ?? '';
 
     if (empty($hash)) {
-        echo 'Hiba történt a számításban!';
+        $response->getBody()->write('Your hash not exists!');
+        return $response;
+    } elseif (empty($remainingViews) || $remainingViews == 0) {
+        $response->getBody()->write('Your remaining views are running out of attempts!');
+        return $response;
     }
 
-    return $secretController->getSecret($request, $response, ['hash' => $hash]);
+    return $secretController->getSecret($request, $response, ['hash' => $hash, 'remainingViews' => $remainingViews]);
 });
-
-/* $app->get('/swagger.yaml', function (Request $request, Response $response, $args) {
-    $response->getBody()->write(file_get_contents(__DIR__ . '/../swagger.yaml'));
-    return $response->withHeader('Content-Type', 'application/x-yaml');
-}); */
 
 $app->run();
